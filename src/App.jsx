@@ -1,71 +1,102 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 function App() {
-  // We set a default search that you might want to look up, like a game or a tool!
-  const [brandName, setBrandName] = useState("Valorant");
+  const [brandName, setBrandName] = useState("");
+  const [customText, setCustomText] = useState("");
   const [report, setReport] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // This function runs when you click the search button
-  const fetchSentiment = async () => {
-    setLoading(true);
-    setReport(null); // Clear the old report
-    
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  // Fetch history when page loads
+  const fetchHistory = async () => {
     try {
-      // The frontend "waiter" takes the order to your backend kitchen
-      // This tells React: "Use the live URL if we are on the internet, otherwise use localhost"
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const response = await axios.get(`${apiUrl}/api/sentiment/${brandName}`);
-      setReport(response.data); // Save the AI's response to display it
-    } catch (error) {
-      console.error("Connection failed:", error);
-      alert("Could not connect. Is your backend server running?");
+      const res = await axios.get(`${apiUrl}/api/history`);
+      setHistory(res.data);
+    } catch (err) {
+      console.error("Could not fetch history");
     }
-    
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, [report]);
+
+  const handleAnalyze = async (e) => {
+    e.preventDefault();
+    if (!brandName) return alert("Please enter a product or brand name");
+    setLoading(true);
+    setReport(null);
+
+    try {
+      const response = await axios.post(`${apiUrl}/api/sentiment`, {
+        brandName,
+        customText: customText.trim() || null
+      });
+      setReport(response.data);
+      setCustomText(""); // clear input
+    } catch (error) {
+      console.error(error);
+      alert("Analysis failed. Check if backend is awake.");
+    }
     setLoading(false);
   };
 
-  // Colors for our pie chart
-  const COLORS = ['#4ade80', '#f87171', '#94a3b8']; 
+  const COLORS = ['#4ade80', '#f87171', '#94a3b8'];
 
   return (
-    <div style={{ fontFamily: 'sans-serif', maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
-      <h1>Brutally Honest Sentiment Report</h1>
-      
-      {/* The Search Bar */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
-        <input 
-          type="text" 
-          value={brandName}
-          onChange={(e) => setBrandName(e.target.value)}
-          placeholder="Enter a brand or product..."
-          style={{ padding: '10px', fontSize: '16px', flex: 1 }}
-        />
-        <button onClick={fetchSentiment} style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer' }}>
-          {loading ? "Analyzing..." : "Analyze"}
-        </button>
-      </div>
+    <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: '900px', margin: '40px auto', padding: '20px', color: '#1e293b' }}>
+      <header style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>⚡ Brutally Honest Sentiment AI</h1>
+        <p style={{ color: '#64748b' }}>Analyze market sentiment instantly or paste custom raw reviews.</p>
+      </header>
 
-      {/* The Report Display */}
-      {report && (
-        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-          <h2>Report for: {brandName}</h2>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {/* The Graph */}
-            <div>
-              <PieChart width={300} height={300}>
+      <div style={{ display: 'grid', gap: '30px' }}>
+        {/* Input Form Card */}
+        <div style={{ background: '#ffffff', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+          <form onSubmit={handleAnalyze}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Brand / Product Name</label>
+            <input 
+              type="text"
+              placeholder="e.g. Red Dead Redemption 2, iPhone 15, Notion..."
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              style={{ width: '100%', padding: '12px', fontSize: '16px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '20px', boxSizing: 'border-box' }}
+            />
+
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Paste Raw Reviews / Feedback (Optional)</label>
+            <textarea 
+              rows="5"
+              placeholder="Leave blank for a general web scan, or paste specific text/customer comments here to analyze them specifically..."
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              style={{ width: '100%', padding: '12px', fontSize: '15px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '20px', boxSizing: 'border-box', resize: 'vertical' }}
+            />
+
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: 'background 0.2s' }}>
+              {loading ? "Analyzing Context via Gemini AI..." : "Generate Sentiment Report"}
+            </button>
+          </form>
+        </div>
+
+        {/* Results Visualizer Section */}
+        {report && (
+          <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <h2 style={{ marginTop: 0 }}>Report Snapshot: {report.brandName}</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'center' }}>
+              <PieChart width={280} height={240}>
                 <Pie
                   data={[
-                    { name: 'Positive', value: report.positivePercentage || 33 },
-                    { name: 'Negative', value: report.negativePercentage || 33 },
-                    { name: 'Neutral', value: report.neutralPercentage || 34 }
+                    { name: 'Positive', value: report.positivePercentage },
+                    { name: 'Negative', value: report.negativePercentage },
+                    { name: 'Neutral', value: report.neutralPercentage }
                   ]}
                   innerRadius={60}
                   outerRadius={80}
-                  paddingAngle={5}
+                  paddingAngle={4}
                   dataKey="value"
                 >
                   {COLORS.map((color, index) => <Cell key={`cell-${index}`} fill={color} />)}
@@ -73,23 +104,35 @@ const response = await axios.get(`${apiUrl}/api/sentiment/${brandName}`);
                 <Tooltip />
                 <Legend />
               </PieChart>
-            </div>
 
-            {/* The Praises & Complaints */}
-            <div style={{ flex: 1, marginLeft: '40px' }}>
-              <h3 style={{ color: '#16a34a' }}>Top Praises</h3>
-              <ul>
-                {report.topPraises?.map((praise, index) => <li key={index}>{praise}</li>)}
-              </ul>
-
-              <h3 style={{ color: '#dc2626' }}>Top Complaints</h3>
-              <ul>
-                {report.topComplaints?.map((complaint, index) => <li key={index}>{complaint}</li>)}
-              </ul>
+              <div style={{ flex: 1, minWidth: '280px' }}>
+                <h3 style={{ color: '#16a34a', marginBottom: '5px' }}>🟢 Top Praises</h3>
+                <ul style={{ paddingLeft: '20px', margin: '0 0 20px 0' }}>
+                  {report.topPraises?.map((p, i) => <li key={i} style={{ marginBottom: '4px' }}>{p}</li>)}
+                </ul>
+                <h3 style={{ color: '#dc2626', marginBottom: '5px' }}>🔴 Top Complaints</h3>
+                <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                  {report.topComplaints?.map((c, i) => <li key={i} style={{ marginBottom: '4px' }}>{c}</li>)}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Recent Search History Ledger */}
+        {history.length > 0 && (
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ color: '#475569' }}>🕒 Recently Tracked Profiles</h3>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {history.map((item, idx) => (
+                <div key={idx} onClick={() => setReport(item)} style={{ background: '#edf2f7', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', transition: 'background 0.2s' }}>
+                  {item.brandName} ({item.positivePercentage}% Pos)
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
