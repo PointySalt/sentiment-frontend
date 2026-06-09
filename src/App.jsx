@@ -81,44 +81,85 @@ function App() {
             </button>
           </form>
         </div>
-
-        {/* Results Visualizer Section */}
+{/* Results Visualizer Section */}
         {report && (
           <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            <h2 style={{ marginTop: 0 }}>Report Snapshot: {report.brandName}</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'center' }}>
-              <PieChart width={280} height={240}>
-                <Pie
-                  data={[
-                    { name: 'Positive', value: report.positivePercentage },
-                    { name: 'Negative', value: report.negativePercentage },
-                    { name: 'Neutral', value: report.neutralPercentage }
-                  ]}
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {COLORS.map((color, index) => <Cell key={`cell-${index}`} fill={color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
+            <h2 style={{ marginTop: 0, borderBottom: '2px solid #e2e8f0', paddingBottom: '10px' }}>
+              📊 Analytics Report: {report.brandName}
+            </h2>
 
+            {/* AI Verdict Summary */}
+            <div style={{ background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #3b82f6', marginBottom: '25px' }}>
+              <h4 style={{ margin: '0 0 5px 0', color: '#1e293b' }}>🤖 AI Verdict</h4>
+              <p style={{ margin: 0, color: '#475569', lineHeight: '1.5' }}>{report.aiVerdict || "Not enough data to form a definitive verdict."}</p>
+            </div>
+
+            {/* Main Graph & Lists Layout */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'flex-start' }}>
+              
+              {/* Pie Chart with Fallback Data */}
+              <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <PieChart width={280} height={240}>
+                  <Pie
+                    data={[
+                      { name: 'Positive', value: report.positivePercentage || 1 }, // Fallback to 1 so chart always renders
+                      { name: 'Negative', value: report.negativePercentage || 1 },
+                      { name: 'Neutral', value: report.neutralPercentage || 1 }
+                    ]}
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {COLORS.map((color, index) => <Cell key={`cell-${index}`} fill={color} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </div>
+
+              {/* Text Lists */}
               <div style={{ flex: 1, minWidth: '280px' }}>
                 <h3 style={{ color: '#16a34a', marginBottom: '5px' }}>🟢 Top Praises</h3>
-                <ul style={{ paddingLeft: '20px', margin: '0 0 20px 0' }}>
-                  {report.topPraises?.map((p, i) => <li key={i} style={{ marginBottom: '4px' }}>{p}</li>)}
+                <ul style={{ paddingLeft: '20px', margin: '0 0 20px 0', color: '#334155' }}>
+                  {report.topPraises?.length > 0 
+                    ? report.topPraises.map((p, i) => <li key={i} style={{ marginBottom: '4px' }}>{p}</li>)
+                    : <li>No distinct praises found.</li>}
                 </ul>
+                
                 <h3 style={{ color: '#dc2626', marginBottom: '5px' }}>🔴 Top Complaints</h3>
-                <ul style={{ paddingLeft: '20px', margin: 0 }}>
-                  {report.topComplaints?.map((c, i) => <li key={i} style={{ marginBottom: '4px' }}>{c}</li>)}
+                <ul style={{ paddingLeft: '20px', margin: 0, color: '#334155' }}>
+                  {report.topComplaints?.length > 0 
+                    ? report.topComplaints.map((c, i) => <li key={i} style={{ marginBottom: '4px' }}>{c}</li>)
+                    : <li>No major complaints detected.</li>}
                 </ul>
               </div>
             </div>
+
+            {/* Deep Analytics Tags */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#475569' }}>💡 Trending Keywords</h4>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {report.trendingKeywords?.map((kw, i) => (
+                    <span key={i} style={{ background: '#e2e8f0', padding: '4px 10px', borderRadius: '15px', fontSize: '13px', fontWeight: '500' }}>#{kw}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#475569' }}>🎭 Key Emotions Detected</h4>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {report.keyEmotions?.map((em, i) => (
+                    <span key={i} style={{ background: '#fef3c7', color: '#b45309', padding: '4px 10px', borderRadius: '15px', fontSize: '13px', fontWeight: '500' }}>{em}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
-
+     
         {/* Recent Search History Ledger */}
         {history.length > 0 && (
           <div style={{ marginTop: '20px' }}>
